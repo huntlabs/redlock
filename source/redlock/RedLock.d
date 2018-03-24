@@ -1,4 +1,4 @@
-﻿module huntlabs.RedLock;
+﻿module redlock.RedLock;
 
 import std.uuid;
 import std.string;
