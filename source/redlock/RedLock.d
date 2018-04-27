@@ -10,7 +10,7 @@ import core.time;
 import core.thread;
 import core.stdc.stdlib;
 
-import tinyredis;
+import redis;
 
 
 
@@ -61,33 +61,35 @@ class RedLock
 	{
 		string val = to!string(randomUUID());
 		auto end_tick = nsecsToTicks(cast(long)timeout * 1000 * 1000) + MonoTime.currTime.ticks();
+		synchronized(this)
+		{
+			lock.key = key;
+			lock.uniqueId = val;
 
-		lock.key = key;
-		lock.uniqueId = val;
+			do{
+				ulong n = 0;
+				auto t1 = MonoTime.currTime.ticks();
+				foreach(c ; _redisClients)
+				{
+					if(LockInstance(c , key, val , ttl)) ++n;
+				}
 
-		do{
-			ulong n = 0;
-			auto t1 = MonoTime.currTime.ticks();
-			foreach(c ; _redisClients)
-			{
-				if(LockInstance(c , key, val , ttl)) ++n;
-			}
+				auto t2 =  MonoTime.currTime.ticks();
+				auto clockdrat = cast(ulong)(_clockFactor * ttl) + 2;
+				ulong validtime = ttl - ticksToNSecs(t2 - t1)/1000 - clockdrat;
+				if(validtime > 0 && n >= _quornum)
+				{
+					lock.validTime = validtime;
+					return true;
+				}else{
+					Unlock(lock);
+				}
+				ulong delay = rand() % _delaytime + _delaytime / 2;
+				Thread.sleep(dur!"msecs"(delay));
+			}while(MonoTime.currTime.ticks() < end_tick);
 
-			auto t2 =  MonoTime.currTime.ticks();
-			auto clockdrat = cast(ulong)(_clockFactor * ttl) + 2;
-			ulong validtime = ttl - ticksToNSecs(t2 - t1)/1000 - clockdrat;
-			if(validtime > 0 && n >= _quornum)
-			{
-				lock.validTime = validtime;
-				return true;
-			}else{
-				Unlock(lock);
-			}
-			ulong delay = rand() % _delaytime + _delaytime / 2;
-			Thread.sleep(dur!"msecs"(delay));
-		}while(MonoTime.currTime.ticks() < end_tick);
-
-		return false;
+			return false;
+		}
 
 	}
 
