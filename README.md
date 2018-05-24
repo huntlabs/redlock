@@ -14,7 +14,7 @@ auto lock = new RedLock("127.0.0.1:6379");
 LockedObject obj;
 lock.Lock("key" , obj);
 //do some thing
-lock.Unlock();
+lock.Unlock(obj);
 
 
 ````	
