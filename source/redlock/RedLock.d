@@ -164,15 +164,68 @@ private:
 
 unittest{
 
+
+	import core.thread;
 	import std.stdio;
-	RedLock lock = new RedLock("127.0.0.1:6379;127.0.0.1:6380" , false);
-	LockedObject object;
-	lock.Lock("account2" , object);
-	writeln(object);
+	import std.conv;
+	class Test:Thread
+	{
+		string 	_name;  
+		int 	_second;
+		bool  	_flag;
+		RedLock _lock;
+		this(string name , int second)
+		{
+			super(&run);
+			_name = name;
+			_second = second;
+			_lock = new RedLock("127.0.0.1:6379");
+			_flag = true;
+		}
+
+		void stop()
+		{
+			_flag = false;
+		}
+
+		void run()
+		{
+			while(_flag)
+			{
+				LockedObject obj;
+				if(!_lock.Lock("test1" ,obj , 1000))
+				{
+					writeln(" timeout failed ", _name);
+					continue;
+				}
+
+				writeln(_name , " locked");
+				Thread.sleep(dur!"msecs"(500));
+				writeln(_name , " un locked");
+				_lock.Unlock(obj);
+				Thread.sleep(dur!"seconds"(1));
+			}
+
+		}
+	}
 
 
-	writeln(lock.Lock("account2" , object  , 5000 ));
+	Test[] list;
+	for(uint i = 0 ; i < 100 ; i ++)
+	{
+		auto test = new Test(to!string(i) , 1);
+		test.start();
+		list ~= test;
+	}
 
+	Thread.sleep(dur!"seconds"(30));
 
+	foreach(t ; list)
+	{
+		t.stop();
+	}
+
+	foreach( t; list)
+		t.join();
 
 }

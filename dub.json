@@ -4,6 +4,6 @@
 	"description": "Distributed locks with Redis",
 	"copyright": "Copyright (C) 2015-2018 Shanghai Putao Technology Co., Ltd",
 	"dependencies": {
-		"dredis": {"version" :"~>0.0.7" }
+		"dredis": {"version" :"~>0.0.9" }
     }
 }

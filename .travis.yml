@@ -1,0 +1,9 @@
+language: d
+sudo: false
+services:
+ - redis-server
+os:
+ - linux
+d:
+  - dmd
+  - ldc
